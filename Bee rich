@@ -1,0 +1,166 @@
+--// Optimized GUI Auto Collector + Auto Purchase (Dynamic Delay) + Cre: ThuanPhat
+
+local Players = game:GetService("Players")
+local RS = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local autoCollect = false
+local delayTime = 5
+
+-- Danh sách potion tự mua
+local purchaseItems = {"Small Yield Potion", "Small Speed Potion", "Small Luck Potion"}
+
+-- Tìm plot của người chơi
+local function findMyPlot()
+    local Plots = workspace:WaitForChild("Plots")
+    for _, plot in ipairs(Plots:GetChildren()) do
+        if plot:GetAttribute("Taken") == LocalPlayer.Name then
+            return plot
+        end
+        local owner = plot:FindFirstChild("Owner")
+        if owner and owner.Value == LocalPlayer then
+            return plot
+        end
+    end
+    return nil
+end
+
+-- Thu hoạch tất cả structure trong plot
+local function collectEverything()
+    local plot = findMyPlot()
+    if not plot then return end
+    local placed = plot:WaitForChild("Placed", 5)
+    if not placed then return end
+
+    for _, structure in ipairs(placed:GetChildren()) do
+        if structure then
+            RS.Remotes.Events.Request:FireServer("CollectStructure", structure)
+            task.wait(0.05)
+        end
+    end
+end
+
+-- Tự mua potion
+local function purchaseAllPotions()
+    for _, item in ipairs(purchaseItems) do
+        RS.Remotes.Functions.Request:InvokeServer("PurchaseGear", item)
+        task.wait(0.05)
+    end
+end
+
+-- Luồng chạy auto (tối ưu phản hồi delay)
+task.spawn(function()
+    local timer = 0
+    while true do
+        if autoCollect then
+            collectEverything()
+            purchaseAllPotions()
+        end
+        task.wait(0.05) -- kiểm tra liên tục
+        timer += 0.05
+        if timer >= delayTime then
+            timer = 0
+        end
+    end
+end)
+
+--// GUI Setup
+local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = playerGui
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0,200,0,140)
+Frame.Position = UDim2.new(0.3,0,0.3,0)
+Frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner", Frame)
+UICorner.CornerRadius = UDim.new(0,12)
+
+-- Toggle Auto Collect
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0,160,0,40)
+ToggleBtn.Position = UDim2.new(0,20,0,10)
+ToggleBtn.Text = "Auto Collect: OFF"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
+ToggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
+ToggleBtn.Parent = Frame
+
+local corner1 = Instance.new("UICorner", ToggleBtn)
+corner1.CornerRadius = UDim.new(0,8)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    autoCollect = not autoCollect
+    if autoCollect then
+        ToggleBtn.Text = "Auto Collect: ON"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(50,150,50)
+    else
+        ToggleBtn.Text = "Auto Collect: OFF"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    end
+end)
+
+-- Delay Input
+local InputBox = Instance.new("TextBox")
+InputBox.Size = UDim2.new(0,160,0,40)
+InputBox.Position = UDim2.new(0,20,0,80)
+InputBox.Text = tostring(delayTime)
+InputBox.PlaceholderText = "Delay (s)"
+InputBox.BackgroundColor3 = Color3.fromRGB(80,80,80)
+InputBox.TextColor3 = Color3.fromRGB(255,255,255)
+InputBox.ClearTextOnFocus = false
+InputBox.Parent = Frame
+
+local corner2 = Instance.new("UICorner", InputBox)
+corner2.CornerRadius = UDim.new(0,8)
+
+InputBox.FocusLost:Connect(function(enter)
+    if enter then
+        local txt = string.gsub(InputBox.Text, "%s+", "")
+        local num = tonumber(txt)
+        if num and num > 0 then
+            delayTime = num
+            InputBox.Text = tostring(delayTime)
+        else
+            InputBox.Text = tostring(delayTime)
+        end
+    end
+end)
+
+-- Thêm Credit "Cre: ThuanPhat" cầu vồng
+local CreditLabel = Instance.new("TextLabel")
+CreditLabel.Size = UDim2.new(0,160,0,20)
+CreditLabel.Position = UDim2.new(0,20,0,115) -- dưới InputBox
+CreditLabel.BackgroundTransparency = 1
+CreditLabel.Text = "Cre: ThuanPhat"
+CreditLabel.TextColor3 = Color3.fromRGB(255,0,0)
+CreditLabel.TextStrokeTransparency = 0.5
+CreditLabel.TextScaled = true
+CreditLabel.Font = Enum.Font.GothamBold
+CreditLabel.Parent = Frame
+
+local rainbowColors = {
+    Color3.fromRGB(255,0,0),
+    Color3.fromRGB(255,127,0),
+    Color3.fromRGB(255,255,0),
+    Color3.fromRGB(0,255,0),
+    Color3.fromRGB(0,0,255),
+    Color3.fromRGB(75,0,130),
+    Color3.fromRGB(148,0,211),
+}
+
+local colorIndex = 1
+
+RunService.Heartbeat:Connect(function()
+    CreditLabel.TextColor3 = rainbowColors[colorIndex]
+    colorIndex += 1
+    if colorIndex > #rainbowColors then
+        colorIndex = 1
+    end
+end)
