@@ -1,4 +1,4 @@
--- 🍏 Fruit Finder v19 - GUI + Auto hop + Webhook Notify + VN Time (No Loadstring)
+-- 🍏 Fruit Finder v19 - GUI + Auto hop + Webhook + Teleport Fruit
 
 local excludeKeywords = {
     "Smelt","Diamond","Spring","Chop","Slip","Swim",
@@ -126,7 +126,7 @@ local function updateList()
 
         sendWebhook("❌ No fruit found in server: " .. game.JobId)
 
-        -- Auto hop server nhanh nhưng ổn định
+        -- Auto hop server
         task.delay(0.5, function()
             local success, servers = pcall(function()
                 return HttpService:JSONDecode(
@@ -159,8 +159,14 @@ local function updateList()
 
             table.insert(fruitNames, f.Name)
 
+            -- Khi click vào fruit, teleport tới vị trí fruit
             btn.MouseButton1Click:Connect(function()
-                warn("👉 Bạn chọn fruit:", f.Name)
+                if f.PrimaryPart then
+                    LocalPlayer.Character:SetPrimaryPartCFrame(f.PrimaryPart.CFrame + Vector3.new(0,3,0))
+                elseif f:IsA("Model") and f:FindFirstChildWhichIsA("BasePart") then
+                    LocalPlayer.Character:SetPrimaryPartCFrame(f:FindFirstChildWhichIsA("BasePart").CFrame + Vector3.new(0,3,0))
+                end
+                warn("👉 Teleport tới fruit:", f.Name)
             end)
         end
         ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, #fruits * 32)
@@ -169,7 +175,7 @@ local function updateList()
     end
 end
 
--- Tự động update danh sách mỗi 2 giây (nhanh và ổn định)
+-- Tự động update danh sách mỗi 2 giây
 task.spawn(function()
     while true do
         updateList()
