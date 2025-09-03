@@ -1,4 +1,4 @@
--- 🍏 Fruit Finder v19 - GUI + Auto hop + Webhook Notify (Fix delay)
+-- 🍏 Fruit Finder v19 - GUI + Auto hop + Webhook Notify + Time VN
 
 local excludeKeywords = {
     "Smelt","Diamond","Spring","Chop","Slip","Swim",
@@ -14,9 +14,18 @@ local LocalPlayer = Players.LocalPlayer
 -- Webhook của bạn
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1207939098464096296/ho1yL2TCRpCAYhJDOFJaMBOmG4iadfLZaDpyHZznwPyXVhESYn77622vJd189auBkzxu"
 
+-- Lấy thời gian hiện tại theo VN (UTC+7)
+local function getVietnamTime()
+    local utcTime = os.time()
+    local vnTime = utcTime + 7 * 3600
+    return os.date("%Y-%m-%d %H:%M:%S", vnTime)
+end
+
+-- Gửi webhook kèm thời gian VN
 local function sendWebhook(msg)
     local ok, err = pcall(function()
-        local body = HttpService:JSONEncode({content = msg})
+        local timeStr = getVietnamTime()
+        local body = HttpService:JSONEncode({content = "["..timeStr.."] "..msg})
         request({
             Url = WEBHOOK_URL,
             Method = "POST",
@@ -27,6 +36,7 @@ local function sendWebhook(msg)
     if not ok then warn("Webhook error:", err) end
 end
 
+-- Kiểm tra xem fruit có bị loại trừ
 local function isExcluded(name)
     local lower = name:lower()
     for _, keyword in ipairs(excludeKeywords) do
@@ -37,6 +47,7 @@ local function isExcluded(name)
     return false
 end
 
+-- Tìm tất cả fruit trong workspace
 local function findFruits()
     local fruits = {}
     for _, obj in ipairs(workspace:GetChildren()) do
@@ -154,4 +165,10 @@ local function updateList()
     end
 end
 
-updateList()
+-- Tự động update danh sách mỗi 10 giây
+task.spawn(function()
+    while true do
+        updateList()
+        task.wait(10)
+    end
+end)
