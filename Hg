@@ -1,4 +1,4 @@
--- 🍏 Fruit Finder v19 - GUI + Auto hop + Webhook Notify + Time VN
+-- 🍏 Fruit Finder v19 - GUI + Auto hop + Webhook Notify + VN Time (No Loadstring)
 
 local excludeKeywords = {
     "Smelt","Diamond","Spring","Chop","Slip","Swim",
@@ -16,14 +16,19 @@ local WEBHOOK_URL = "https://discord.com/api/webhooks/1207939098464096296/ho1yL2
 
 -- Lấy thời gian hiện tại theo VN (UTC+7)
 local function getVietnamTime()
-    local utcTime = os.time()
-    local vnTime = utcTime + 7 * 3600
-    return os.date("%Y-%m-%d %H:%M:%S", vnTime)
+    local utc = os.date("!*t")
+    utc.hour = utc.hour + 7
+    if utc.hour >= 24 then
+        utc.hour = utc.hour - 24
+        utc.day = utc.day + 1
+    end
+    return string.format("%04d-%02d-%02d %02d:%02d:%02d",
+        utc.year, utc.month, utc.day, utc.hour, utc.min, utc.sec)
 end
 
 -- Gửi webhook kèm thời gian VN
 local function sendWebhook(msg)
-    local ok, err = pcall(function()
+    pcall(function()
         local timeStr = getVietnamTime()
         local body = HttpService:JSONEncode({content = "["..timeStr.."] "..msg})
         request({
@@ -33,10 +38,9 @@ local function sendWebhook(msg)
             Body = body
         })
     end)
-    if not ok then warn("Webhook error:", err) end
 end
 
--- Kiểm tra xem fruit có bị loại trừ
+-- Kiểm tra fruit có bị loại trừ
 local function isExcluded(name)
     local lower = name:lower()
     for _, keyword in ipairs(excludeKeywords) do
@@ -122,8 +126,8 @@ local function updateList()
 
         sendWebhook("❌ No fruit found in server: " .. game.JobId)
 
-        -- Auto hop sau 5 giây
-        task.delay(5, function()
+        -- Auto hop server nhanh nhưng ổn định
+        task.delay(0.5, function()
             local success, servers = pcall(function()
                 return HttpService:JSONDecode(
                     game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")
@@ -131,7 +135,7 @@ local function updateList()
             end)
             if success and servers and servers.data then
                 for _, srv in ipairs(servers.data) do
-                    if srv.playing < srv.maxPlayers then
+                    if srv.playing < srv.maxPlayers and srv.id ~= game.JobId then
                         TeleportService:TeleportToPlaceInstance(game.PlaceId, srv.id, LocalPlayer)
                         break
                     end
@@ -165,10 +169,10 @@ local function updateList()
     end
 end
 
--- Tự động update danh sách mỗi 10 giây
+-- Tự động update danh sách mỗi 2 giây (nhanh và ổn định)
 task.spawn(function()
     while true do
         updateList()
-        task.wait(10)
+        task.wait(2)
     end
 end)
