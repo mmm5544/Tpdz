@@ -1,10 +1,9 @@
--- 🍏 Fruit Finder v18 - Auto hop server + Webhook Notify
+-- 🍏 Fruit Finder v19 - GUI + Auto hop + Webhook Notify (Fix delay)
 
--- Danh sách loại bỏ
 local excludeKeywords = {
-    "Smelt", "Diamond", "Spring", "Chop", "Slip",
-    "Swim", "Clone", "Hot", "Clear", "Float",
-    "Luck", "Spin", "Bomb", "ResetDevil", "Barrier"
+    "Smelt","Diamond","Spring","Chop","Slip","Swim",
+    "Clone","Hot","Clear","Float","Luck","Spin","Bomb",
+    "ResetDevil","Barrier"
 }
 
 local HttpService = game:GetService("HttpService")
@@ -12,23 +11,26 @@ local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- ⚡ Webhook (thay bằng của bạn)
+-- Webhook của bạn
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1207939098464096296/ho1yL2TCRpCAYhJDOFJaMBOmG4iadfLZaDpyHZznwPyXVhESYn77622vJd189auBkzxu"
 
 local function sendWebhook(msg)
-    local body = HttpService:JSONEncode({content = msg})
-    request({
-        Url = WEBHOOK_URL,
-        Method = "POST",
-        Headers = {["Content-Type"] = "application/json"},
-        Body = body
-    })
+    local ok, err = pcall(function()
+        local body = HttpService:JSONEncode({content = msg})
+        request({
+            Url = WEBHOOK_URL,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = body
+        })
+    end)
+    if not ok then warn("Webhook error:", err) end
 end
 
 local function isExcluded(name)
-    local lower = string.lower(name)
+    local lower = name:lower()
     for _, keyword in ipairs(excludeKeywords) do
-        if string.find(lower, string.lower(keyword)) then
+        if lower:find(keyword:lower()) then
             return true
         end
     end
@@ -38,10 +40,8 @@ end
 local function findFruits()
     local fruits = {}
     for _, obj in ipairs(workspace:GetChildren()) do
-        if string.find(string.lower(obj.Name), "fruit") then
-            if not isExcluded(obj.Name) then
-                table.insert(fruits, obj)
-            end
+        if obj.Name:lower():find("fruit") and not isExcluded(obj.Name) then
+            table.insert(fruits, obj)
         end
     end
     return fruits
@@ -66,7 +66,7 @@ Title.Parent = Frame
 Title.Size = UDim2.new(1, -10, 0, 30)
 Title.Position = UDim2.new(0, 5, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "🍏 Fruit Finder v18"
+Title.Text = "🍏 Fruit Finder v19"
 Title.TextColor3 = Color3.fromRGB(0, 255, 0)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 20
@@ -111,8 +111,8 @@ local function updateList()
 
         sendWebhook("❌ No fruit found in server: " .. game.JobId)
 
-        -- Auto hop server
-        task.delay(3, function()
+        -- Auto hop sau 5 giây
+        task.delay(5, function()
             local success, servers = pcall(function()
                 return HttpService:JSONDecode(
                     game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")
