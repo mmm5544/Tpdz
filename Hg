@@ -1,4 +1,4 @@
--- Universal GUI with Auto Click + Fruit Finder + Teleport + Milk/Juice + Bong bóng
+-- Full GUI Update: Auto Crate + Use Milk/Juice + Mix JuicingBowl + Fruit Finder + Teleport + Bong bóng
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
@@ -16,7 +16,7 @@ screenGui.ResetOnSpawn = false
 
 -- Frame chính
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 280, 0, 300)
+frame.Size = UDim2.new(0, 280, 0, 320)
 frame.Position = UDim2.new(0.35,0,0.3,0)
 frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 frame.Active = true
@@ -102,7 +102,7 @@ task.spawn(function()
     end
 end)
 
--- Auto ClickDetector + JuicingBowl + Milk/Juice
+-- Auto ClickDetector (Crates only)
 local autoClicking = false
 local autoBtn = Instance.new("TextButton")
 autoBtn.Size = UDim2.new(1,-10,0,30)
@@ -117,7 +117,46 @@ autoBtn.MouseButton1Click:Connect(function()
     autoBtn.Text = autoClicking and "Auto ClickDetector: ON" or "Auto ClickDetector: OFF"
 end)
 
--- Hàm tìm Mixer1 ClickDetector recursively
+task.spawn(function()
+    while task.wait(0.5) do
+        if autoClicking then
+            pcall(function()
+                -- Click Crates
+                for _, crate in ipairs(workspace.Barrels.Crates:GetChildren()) do
+                    local cd = crate:FindFirstChildOfClass("ClickDetector")
+                    if cd then fireclickdetector(cd) end
+                end
+            end)
+        end
+    end
+end)
+
+-- Nút Use Milk/Juice
+local milkBtn = Instance.new("TextButton")
+milkBtn.Size = UDim2.new(1,-10,0,30)
+milkBtn.Position = UDim2.new(0,5,0,195)
+milkBtn.BackgroundColor3 = Color3.fromRGB(80,120,80)
+milkBtn.TextColor3 = Color3.fromRGB(255,255,255)
+milkBtn.Text = "Use Milk/Juice"
+milkBtn.Parent = frame
+
+milkBtn.MouseButton1Click:Connect(function()
+    local backpack = player:FindFirstChild("Backpack")
+    local char = player.Character
+    if backpack and char then
+        for _, item in ipairs(backpack:GetChildren()) do
+            if item:IsA("Tool") then
+                local n = item.Name:lower()
+                if string.find(n,"milk") or string.find(n,"juice") then
+                    item.Parent = char
+                    pcall(function() item:Activate() end)
+                end
+            end
+        end
+    end
+end)
+
+-- Nút Mix JuicingBowl (1 lần click)
 local function findMixerClickDetector()
     local kitchen = workspace:FindFirstChild("Island8") and workspace.Island8:FindFirstChild("Kitchen")
     if not kitchen then return nil end
@@ -135,46 +174,27 @@ local function findMixerClickDetector()
     return recursiveSearch(kitchen)
 end
 
-task.spawn(function()
-    -- đợi character load
-    local char = player.Character or player.CharacterAdded:Wait()
-    task.wait(2)
-    local mixerCD = findMixerClickDetector()
-    while task.wait(0.5) do
-        if autoClicking then
-            pcall(function()
-                -- Click Crates
-                for _, crate in ipairs(workspace.Barrels.Crates:GetChildren()) do
-                    local cd = crate:FindFirstChildOfClass("ClickDetector")
-                    if cd then fireclickdetector(cd) end
-                end
-                -- Click JuicingBowl Mixer1
-                if mixerCD then
-                    fireclickdetector(mixerCD)
-                end
-                -- Use Milk/Juice trong Backpack
-                local backpack = player:FindFirstChild("Backpack")
-                local char = player.Character
-                if backpack and char then
-                    for _, item in ipairs(backpack:GetChildren()) do
-                        if item:IsA("Tool") then
-                            local n = item.Name:lower()
-                            if string.find(n,"milk") or string.find(n,"juice") then
-                                item.Parent = char
-                                pcall(function() item:Activate() end)
-                            end
-                        end
-                    end
-                end
-            end)
-        end
+local mixBtn = Instance.new("TextButton")
+mixBtn.Size = UDim2.new(1,-10,0,30)
+mixBtn.Position = UDim2.new(0,5,0,230)
+mixBtn.BackgroundColor3 = Color3.fromRGB(120,80,120)
+mixBtn.TextColor3 = Color3.fromRGB(255,255,255)
+mixBtn.Text = "Mix JuicingBowl"
+mixBtn.Parent = frame
+
+mixBtn.MouseButton1Click:Connect(function()
+    local cd = findMixerClickDetector()
+    if cd then
+        pcall(function() fireclickdetector(cd) end)
+    else
+        warn("Mixer1 ClickDetector not found!")
     end
 end)
 
 -- Teleport SandCastle
 local tpBtn = Instance.new("TextButton")
 tpBtn.Size = UDim2.new(1,-10,0,30)
-tpBtn.Position = UDim2.new(0,5,0,195)
+tpBtn.Position = UDim2.new(0,5,0,265)
 tpBtn.BackgroundColor3 = Color3.fromRGB(120,80,80)
 tpBtn.TextColor3 = Color3.fromRGB(255,255,255)
 tpBtn.Text = "Teleport SandCastle"
