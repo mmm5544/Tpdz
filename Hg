@@ -1,9 +1,9 @@
--- Main GUI with Bubble Toggle
+-- Universal GUI with Auto Click + Fruit Finder + Teleport + Milk/Juice + Bong bóng
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
 
--- Xóa GUI cũ nếu có
+-- Xóa GUI cũ
 if CoreGui:FindFirstChild("MainGui") then
     CoreGui.MainGui:Destroy()
 end
@@ -14,90 +14,81 @@ screenGui.Name = "MainGui"
 screenGui.Parent = CoreGui
 screenGui.ResetOnSpawn = false
 
--- Khung chính
+-- Frame chính
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 280, 0, 260)
-frame.Position = UDim2.new(0.35, 0, 0.3, 0)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.Size = UDim2.new(0, 280, 0, 300)
+frame.Position = UDim2.new(0.35,0,0.3,0)
+frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 frame.Active = true
 frame.Draggable = true
 frame.Parent = screenGui
 
 -- Tiêu đề
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+title.Size = UDim2.new(1,0,0,30)
+title.BackgroundColor3 = Color3.fromRGB(25,25,25)
 title.Text = "Universal GUI"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextColor3 = Color3.fromRGB(255,255,255)
 title.TextScaled = true
 title.Parent = frame
 
--- Danh sách loại trừ fruit
-local excluded = {
-    "Smelt","Diamond","Spring","Chop","Slip","Swim",
-    "Clone","Hot","Clear","Float","Luck","Spin","Bomb",
-    "ResetDevil","Barrier"
-}
+-- Fruit Finder
+local excluded = {"Smelt","Diamond","Spring","Chop","Slip","Swim","Clone","Hot","Clear","Float","Luck","Spin","Bomb","ResetDevil","Barrier"}
 local function isExcluded(name)
-    for _, v in ipairs(excluded) do
-        if string.find(name, v) then return true end
+    for _,v in ipairs(excluded) do
+        if string.find(name,v) then return true end
     end
     return false
 end
 
--- Scroll Fruit Finder
 local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1, -10, 0, 120)
-scroll.Position = UDim2.new(0, 5, 0, 35)
-scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.Size = UDim2.new(1,-10,0,120)
+scroll.Position = UDim2.new(0,5,0,35)
+scroll.CanvasSize = UDim2.new(0,0,0,0)
 scroll.ScrollBarThickness = 6
-scroll.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+scroll.BackgroundColor3 = Color3.fromRGB(50,50,50)
 scroll.Parent = frame
 
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.Parent = scroll
-UIListLayout.Padding = UDim.new(0, 2)
+UIListLayout.Padding = UDim.new(0,2)
 
--- Scan Workspace
-local function scanWorkspace(parent, list)
-    for _, obj in ipairs(parent:GetChildren()) do
-        if (string.find(obj.Name, "Fruit") and not isExcluded(obj.Name)) then
-            table.insert(list, obj)
+local function scanWorkspace(parent,list)
+    for _,obj in ipairs(parent:GetChildren()) do
+        if string.find(obj.Name,"Fruit") and not isExcluded(obj.Name) then
+            table.insert(list,obj)
         end
-        scanWorkspace(obj, list)
+        scanWorkspace(obj,list)
     end
 end
 
--- Update Fruit List
 local function updateFruitList()
     scroll:ClearAllChildren()
     UIListLayout.Parent = scroll
     local fruits = {}
-    scanWorkspace(workspace, fruits)
-
+    scanWorkspace(workspace,fruits)
     if #fruits == 0 then
         local noFruit = Instance.new("TextLabel")
-        noFruit.Size = UDim2.new(1, -10, 0, 30)
+        noFruit.Size = UDim2.new(1,-10,0,30)
         noFruit.BackgroundTransparency = 1
-        noFruit.TextColor3 = Color3.fromRGB(255, 100, 100)
+        noFruit.TextColor3 = Color3.fromRGB(255,100,100)
         noFruit.Text = "Không có fruit"
         noFruit.Parent = scroll
     else
-        for _, obj in ipairs(fruits) do
-            local fruitBtn = Instance.new("TextButton")
-            fruitBtn.Size = UDim2.new(1, -10, 0, 30)
-            fruitBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-            fruitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            fruitBtn.Text = obj.Name
-            fruitBtn.Parent = scroll
-
-            fruitBtn.MouseButton1Click:Connect(function()
+        for _,obj in ipairs(fruits) do
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1,-10,0,30)
+            btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+            btn.TextColor3 = Color3.fromRGB(255,255,255)
+            btn.Text = obj.Name
+            btn.Parent = scroll
+            btn.MouseButton1Click:Connect(function()
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 if hrp then
                     if obj:IsA("BasePart") then
-                        hrp.CFrame = obj.CFrame + Vector3.new(0, 5, 0)
+                        hrp.CFrame = obj.CFrame + Vector3.new(0,5,0)
                     elseif obj:IsA("Model") then
-                        hrp.CFrame = obj:GetPivot() + Vector3.new(0, 5, 0)
+                        hrp.CFrame = obj:GetPivot() + Vector3.new(0,5,0)
                     end
                 end
             end)
@@ -111,13 +102,13 @@ task.spawn(function()
     end
 end)
 
--- Auto ClickDetector toggle
+-- Auto ClickDetector + JuicingBowl + Milk/Juice
 local autoClicking = false
 local autoBtn = Instance.new("TextButton")
-autoBtn.Size = UDim2.new(1, -10, 0, 30)
-autoBtn.Position = UDim2.new(0, 5, 0, 160)
-autoBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 120)
-autoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoBtn.Size = UDim2.new(1,-10,0,30)
+autoBtn.Position = UDim2.new(0,5,0,160)
+autoBtn.BackgroundColor3 = Color3.fromRGB(80,80,120)
+autoBtn.TextColor3 = Color3.fromRGB(255,255,255)
 autoBtn.Text = "Auto ClickDetector: OFF"
 autoBtn.Parent = frame
 
@@ -130,9 +121,35 @@ task.spawn(function()
     while task.wait(0.5) do
         if autoClicking then
             pcall(function()
+                -- Click Crates
                 for _, crate in ipairs(workspace.Barrels.Crates:GetChildren()) do
                     local cd = crate:FindFirstChildOfClass("ClickDetector")
                     if cd then fireclickdetector(cd) end
+                end
+                -- Click JuicingBowl.Mixer1
+                local kitchen = workspace:IsA("Folder") and workspace.Island8 and workspace.Island8:FindFirstChild("Kitchen")
+                if kitchen then
+                    local idx3 = kitchen:GetChildren()[3]
+                    if idx3 and idx3:FindFirstChild("JuicingBowl") then
+                        local mixer = idx3.JuicingBowl:FindFirstChild("Mixer1")
+                        if mixer and mixer:FindFirstChildOfClass("ClickDetector") then
+                            fireclickdetector(mixer.ClickDetector)
+                        end
+                    end
+                end
+                -- Use Milk/Juice trong Backpack
+                local backpack = player:FindFirstChild("Backpack")
+                local char = player.Character
+                if backpack and char then
+                    for _, item in ipairs(backpack:GetChildren()) do
+                        if item:IsA("Tool") then
+                            local n = item.Name:lower()
+                            if string.find(n,"milk") or string.find(n,"juice") then
+                                item.Parent = char
+                                pcall(function() item:Activate() end)
+                            end
+                        end
+                    end
                 end
             end)
         end
@@ -141,26 +158,26 @@ end)
 
 -- Teleport SandCastle
 local tpBtn = Instance.new("TextButton")
-tpBtn.Size = UDim2.new(1, -10, 0, 30)
-tpBtn.Position = UDim2.new(0, 5, 0, 195)
-tpBtn.BackgroundColor3 = Color3.fromRGB(120, 80, 80)
-tpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+tpBtn.Size = UDim2.new(1,-10,0,30)
+tpBtn.Position = UDim2.new(0,5,0,195)
+tpBtn.BackgroundColor3 = Color3.fromRGB(120,80,80)
+tpBtn.TextColor3 = Color3.fromRGB(255,255,255)
 tpBtn.Text = "Teleport SandCastle"
 tpBtn.Parent = frame
 
 tpBtn.MouseButton1Click:Connect(function()
     local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if hrp and workspace:FindFirstChild("IslandSandCastle") then
-        hrp.CFrame = workspace.IslandSandCastle:GetPivot() + Vector3.new(0, 5, 0)
+        hrp.CFrame = workspace.IslandSandCastle:GetPivot() + Vector3.new(0,5,0)
     end
 end)
 
 -- Xóa GUI
 local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 50, 0, 30)
-closeBtn.Position = UDim2.new(1, -55, 1, -35)
-closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Size = UDim2.new(0,50,0,30)
+closeBtn.Position = UDim2.new(1,-55,1,-35)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
 closeBtn.Text = "Xóa"
 closeBtn.Parent = frame
 
@@ -169,11 +186,11 @@ closeBtn.MouseButton1Click:Connect(function()
     script:Destroy()
 end)
 
--- Bong bóng toggle
+-- Bong bóng ẩn/hiện GUI
 local bubble = Instance.new("TextButton")
-bubble.Size = UDim2.new(0, 50, 0, 50)
-bubble.Position = UDim2.new(1, -60, 0.5, -25) -- mặc định bên phải
-bubble.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+bubble.Size = UDim2.new(0,50,0,50)
+bubble.Position = UDim2.new(1,-60,0.5,-25)
+bubble.BackgroundColor3 = Color3.fromRGB(100,100,255)
 bubble.Text = "◎"
 bubble.TextScaled = true
 bubble.TextColor3 = Color3.fromRGB(255,255,255)
