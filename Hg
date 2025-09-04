@@ -117,7 +117,29 @@ autoBtn.MouseButton1Click:Connect(function()
     autoBtn.Text = autoClicking and "Auto ClickDetector: ON" or "Auto ClickDetector: OFF"
 end)
 
+-- Hàm tìm Mixer1 ClickDetector recursively
+local function findMixerClickDetector()
+    local kitchen = workspace:FindFirstChild("Island8") and workspace.Island8:FindFirstChild("Kitchen")
+    if not kitchen then return nil end
+    local function recursiveSearch(parent)
+        for _, obj in ipairs(parent:GetChildren()) do
+            if obj.Name == "Mixer1" then
+                local cd = obj:FindFirstChildOfClass("ClickDetector")
+                if cd then return cd end
+            end
+            local result = recursiveSearch(obj)
+            if result then return result end
+        end
+        return nil
+    end
+    return recursiveSearch(kitchen)
+end
+
 task.spawn(function()
+    -- đợi character load
+    local char = player.Character or player.CharacterAdded:Wait()
+    task.wait(2)
+    local mixerCD = findMixerClickDetector()
     while task.wait(0.5) do
         if autoClicking then
             pcall(function()
@@ -126,19 +148,9 @@ task.spawn(function()
                     local cd = crate:FindFirstChildOfClass("ClickDetector")
                     if cd then fireclickdetector(cd) end
                 end
-                -- Click JuicingBowl.Mixer1
-                local kitchen = workspace:FindFirstChild("Island8") and workspace.Island8:FindFirstChild("Kitchen")
-                if kitchen then
-                    local juicingBowl = kitchen:FindFirstChild("JuicingBowl")
-                    if juicingBowl then
-                        local mixer = juicingBowl:FindFirstChild("Mixer1")
-                        if mixer then
-                            local cd = mixer:FindFirstChildOfClass("ClickDetector")
-                            if cd then
-                                fireclickdetector(cd)
-                            end
-                        end
-                    end
+                -- Click JuicingBowl Mixer1
+                if mixerCD then
+                    fireclickdetector(mixerCD)
                 end
                 -- Use Milk/Juice trong Backpack
                 local backpack = player:FindFirstChild("Backpack")
