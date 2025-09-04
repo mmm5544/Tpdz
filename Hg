@@ -1,4 +1,4 @@
--- Full GUI Update: Auto Crate + Use Milk/Juice + Mix JuicingBowl + Fruit Finder + Teleport + Bong bóng
+-- Full GUI Update với Auto ClickDetector quét liên tục
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
@@ -102,7 +102,7 @@ task.spawn(function()
     end
 end)
 
--- Auto ClickDetector (Crates only)
+-- Auto ClickDetector (quét tất cả ClickDetector trong workspace)
 local autoClicking = false
 local autoBtn = Instance.new("TextButton")
 autoBtn.Size = UDim2.new(1,-10,0,30)
@@ -118,15 +118,23 @@ autoBtn.MouseButton1Click:Connect(function()
 end)
 
 task.spawn(function()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart")
+    local maxDistance = 32 -- cậu muốn có thể chỉnh
+
     while task.wait(0.5) do
         if autoClicking then
-            pcall(function()
-                -- Click Crates
-                for _, crate in ipairs(workspace.Barrels.Crates:GetChildren()) do
-                    local cd = crate:FindFirstChildOfClass("ClickDetector")
-                    if cd then fireclickdetector(cd) end
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj:IsA("ClickDetector") then
+                    local parent = obj.Parent
+                    if parent and (parent:IsA("BasePart") or parent:FindFirstChild("PrimaryPart")) then
+                        local partPosition = parent:IsA("BasePart") and parent.Position or parent.PrimaryPart.Position
+                        if (partPosition - rootPart.Position).Magnitude <= maxDistance then
+                            pcall(function() fireclickdetector(obj) end)
+                        end
+                    end
                 end
-            end)
+            end
         end
     end
 end)
