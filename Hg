@@ -127,13 +127,16 @@ task.spawn(function()
                     if cd then fireclickdetector(cd) end
                 end
                 -- Click JuicingBowl.Mixer1
-                local kitchen = workspace:IsA("Folder") and workspace.Island8 and workspace.Island8:FindFirstChild("Kitchen")
+                local kitchen = workspace:FindFirstChild("Island8") and workspace.Island8:FindFirstChild("Kitchen")
                 if kitchen then
-                    local idx3 = kitchen:GetChildren()[3]
-                    if idx3 and idx3:FindFirstChild("JuicingBowl") then
-                        local mixer = idx3.JuicingBowl:FindFirstChild("Mixer1")
-                        if mixer and mixer:FindFirstChildOfClass("ClickDetector") then
-                            fireclickdetector(mixer.ClickDetector)
+                    local juicingBowl = kitchen:FindFirstChild("JuicingBowl")
+                    if juicingBowl then
+                        local mixer = juicingBowl:FindFirstChild("Mixer1")
+                        if mixer then
+                            local cd = mixer:FindFirstChildOfClass("ClickDetector")
+                            if cd then
+                                fireclickdetector(cd)
+                            end
                         end
                     end
                 end
