@@ -1,0 +1,62 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local chestsFolder = Workspace:WaitForChild("Maps"):WaitForChild("Map2"):WaitForChild("Chests")
+
+local radius = 20
+local fireCooldown = 0.25
+local lastFire = 0
+
+-- xoá tất cả Highlight trong Workspace (hoặc sâu trong workspace)
+local function removeAllHighlights(parent)
+	for _, obj in pairs(parent:GetDescendants()) do
+		if obj:IsA("Highlight") then
+			obj:Destroy()
+		end
+	end
+end
+
+removeAllHighlights(Workspace)
+
+-- hàm gọi remote mở chest
+local function openChestRemote(chest)
+	local success, _ = pcall(function()
+		local args = {
+			"Map2", -- map
+			chest.Name -- id chest
+		}
+		ReplicatedStorage:WaitForChild("Knit")
+			:WaitForChild("Services")
+			:WaitForChild("FieldChestService")
+			:WaitForChild("RF")
+			:WaitForChild("PlayerGrabbedChest")
+			:InvokeServer(unpack(args))
+	end)
+	return success
+end
+
+-- auto mở chest trong phạm vi, 1 chest mỗi 0.25s
+RunService.Heartbeat:Connect(function(deltaTime)
+	lastFire = lastFire + deltaTime
+	if lastFire < fireCooldown then return end
+	lastFire = 0
+
+	for _, chest in pairs(chestsFolder:GetChildren()) do
+		local success, chestPos = pcall(function()
+			return chest:GetModelCFrame().Position
+		end)
+		if success and chestPos then
+			local dist = (hrp.Position - chestPos).Magnitude
+			if dist <= radius then
+				if openChestRemote(chest) then
+					break -- 1 chest mỗi lần
+				end
+			end
+		end
+	end
+end)
