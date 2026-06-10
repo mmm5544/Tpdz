@@ -27,12 +27,12 @@ frame.Parent = sgui
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 30)
 title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-title.Text = "Fruit Finder & Server Hop"
+title.Text = "Fruit Finder & Server Hop (FIXED)"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextScaled = true
 title.Parent = frame
 
--- Danh sách loại trừ trái rác (Giữ nguyên của bạn)
+-- Danh sách loại trừ trái rác
 local excluded = {"Smelt","Diamond","Spring","Chop","Slip","Swim","Clone","Hot","Clear","Float","Luck","Spin","Bomb","ResetDevil","Barrier"}
 local function isExcluded(name)
     for _, v in ipairs(excluded) do
@@ -90,10 +90,10 @@ espToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Nút Teleport nhanh ở góc màn hình (Mặc định ẩn, chỉ hiện khi chọn trái)
+-- Nút Teleport nhanh ở góc màn hình
 local tpCornerBtn = Instance.new("TextButton")
 tpCornerBtn.Size = UDim2.new(0, 90, 0, 40)
-tpCornerBtn.Position = UDim2.new(1, -100, 1, -50) -- Góc dưới bên phải màn hình
+tpCornerBtn.Position = UDim2.new(1, -100, 1, -50)
 tpCornerBtn.BackgroundColor3 = Color3.fromRGB(230, 130, 20)
 tpCornerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 tpCornerBtn.Text = "Teleport Fruit"
@@ -132,6 +132,15 @@ local function createESP(obj)
     bgui.Parent = obj
 end
 
+-- Hàm tự động nhận diện Request tương thích với Delta X
+local function makeRequest(options)
+    local req = request or http_request or (http and http.request) or (fluxus and fluxus.request)
+    if req then
+        return req(options)
+    end
+    return nil
+end
+
 -- Hàm gửi thông báo Webhook Discord
 local function sendWebhook(fruitName)
     pcall(function()
@@ -140,10 +149,10 @@ local function sendWebhook(fruitName)
             ["embeds"] = {{
                 ["title"] = "🍒 Phát Hiện Trái Ác Quỷ Mới!",
                 ["description"] = "Tìm thấy trái: **" .. fruitName .. "**\nĐã tự động tắt Auto Server Hop để bạn vào nhặt.",
-                ["color"] = 65280 -- Màu xanh lá
+                ["color"] = 65280
             }}
         }
-        local response = request({
+        makeRequest({
             Url = WEBHOOK_URL,
             Method = "POST",
             Headers = {["Content-Type"] = "application/json"},
@@ -152,27 +161,38 @@ local function sendWebhook(fruitName)
     end)
 end
 
--- Hàm thực hiện chuyển Server (Server Hop)
+-- Hàm thực hiện chuyển Server (Tối ưu chống kẹt)
 local function serverHop()
     hopBtn.Text = "Đang tìm server mới..."
-    task.wait(1)
-    pcall(function()
-        local servers = {}
-        local req = request({Url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"})
-        local body = HttpService:JSONDecode(req.Body)
-        if body and body.data then
-            for _, v in pairs(body.data) do
-                if v.playing < v.maxPlayers and v.id ~= game.JobId then
-                    table.insert(servers, v.id)
+    
+    -- Cách 1: Sử dụng API lấy danh sách server công khai (Yêu cầu executor hỗ trợ Request)
+    local success, err = pcall(function()
+        local req = makeRequest({Url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=50"})
+        if req and req.Body then
+            local body = HttpService:JSONDecode(req.Body)
+            if body and body.data then
+                local servers = {}
+                for _, v in pairs(body.data) do
+                    if v.playing and v.maxPlayers and v.playing < v.maxPlayers and v.id ~= game.JobId then
+                        table.insert(servers, v.id)
+                    end
+                end
+                if #servers > 0 then
+                    TeleportService:TeleportToPlaceInstance(game.PlaceId, servers[math.random(1, #servers)], player)
+                    return true
                 end
             end
         end
-        if #servers > 0 then
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, servers[math.random(1, #servers)], player)
-        else
-            hopBtn.Text = "Không tìm thấy SV, thử lại..."
-        end
+        return false
     end)
+    
+    -- Cách 2: Phương pháp dự phòng nếu Executor lỗi Request (Tự nhảy server ngẫu nhiên mặc định)
+    if not success then
+        hopBtn.Text = "Dự phòng: Nhảy SV ngẫu nhiên..."
+        pcall(function()
+            TeleportService:Teleport(game.PlaceId, player)
+        end)
+    end
 end
 
 -- Quét tìm trái trong Workspace
@@ -186,7 +206,10 @@ local function scanWorkspace(parent, list)
 end
 
 -- Hàm cập nhật logic chính
+local isHopping = false
 local function checkAndManageFruits()
+    if isHopping then return end
+    
     local fruits = {}
     scanWorkspace(workspace, fruits)
     
@@ -194,17 +217,17 @@ local function checkAndManageFruits()
     UIListLayout.Parent = scroll
     
     if #fruits > 0 then
-        -- Tìm thấy trái xịn: TẮT TỰ ĐỘNG HOP SERVER
+        -- Tìm thấy trái xịn: DỪNG HOP SERVER NGAY
         if autoServerHop then
             autoServerHop = false
             hopBtn.Text = "Auto Server Hop: OFF"
             hopBtn.BackgroundColor3 = Color3.fromRGB(50, 120, 50)
-            sendWebhook(fruits[1].Name) -- Gửi webhook báo về máy
+            sendWebhook(fruits[1].Name)
         end
         
         -- Hiển thị trái lên danh sách GUI
         for _, obj in ipairs(fruits) do
-            createESP(obj) -- Tự động bật ESP cho các trái tìm được
+            createESP(obj)
             
             local btn = Instance.new("TextButton")
             btn.Size = UDim2.new(1, -10, 0, 30)
@@ -215,7 +238,7 @@ local function checkAndManageFruits()
             
             btn.MouseButton1Click:Connect(function()
                 selectedFruit = obj
-                tpCornerBtn.Visible = true -- Hiện nút Teleport nhanh ở góc màn hình
+                tpCornerBtn.Visible = true
                 tpCornerBtn.Text = "TP: " .. obj.Name
             end)
         end
@@ -228,35 +251,24 @@ local function checkAndManageFruits()
         noFruit.Text = "Không có trái ác quỷ hợp lệ"
         noFruit.Parent = scroll
         
-        -- Nếu đang bật Auto Hop thì tự động nhảy server ngay lập tức
-        if autoServerHop then
-            task.wait(2)
+        -- Chờ game ổn định 1.5 giây rồi nhảy server để tránh bị Roblox chặn dịch chuyển liền
+        if autoServerHop and not isHopping then
+            isHopping = true
+            task.wait(1.5)
             serverHop()
         end
     end
 end
 
--- Chạy vòng lặp kiểm tra liên tục
+-- Vòng lặp quét liên tục
 task.spawn(function()
-    while task.wait(3) do
+    while true do
         checkAndManageFruits()
+        task.wait(0.2)
     end
 end)
 
--- Bong bóng thu nhỏ menu (Giống bản cũ của bạn)
+-- Bong bóng thu nhỏ menu
 local bubble = Instance.new("TextButton")
 bubble.Size = UDim2.new(0, 45, 0, 45)
-bubble.Position = UDim2.new(0.85, 0, 0.3, 0)
-bubble.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
-bubble.Text = "◎"
-bubble.TextScaled = true
-bubble.TextColor3 = Color3.fromRGB(255, 255, 255)
-bubble.Parent = sgui
-bubble.Active = true
-bubble.Draggable = true
-
-local guiVisible = true
-bubble.MouseButton1Click:Connect(function()
-    guiVisible = not guiVisible
-    frame.Visible = guiVisible
-end)
+bubble.Position = UDim2.new(0.85,
