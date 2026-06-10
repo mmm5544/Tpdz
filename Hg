@@ -1,38 +1,40 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-local CoreGui = game:GetService("CoreGui")
 
--- Xóa GUI cũ để tránh trùng lặp khi chạy lại script
-if CoreGui:FindFirstChild("MainGui") then
-    CoreGui.MainGui:Destroy()
+-- Trên điện thoại (Delta X), dùng PlayerGui là an toàn và chắc chắn hiển thị nhất
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+-- Xóa GUI cũ nếu có để tránh lỗi trùng lặp khi bấm Execute nhiều lần
+if PlayerGui:FindFirstChild("MainGui") then
+    PlayerGui.MainGui:Destroy()
 end
 
 -- ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "MainGui"
-screenGui.Parent = CoreGui
+screenGui.Parent = PlayerGui
 screenGui.ResetOnSpawn = false
 
--- Frame chính
+-- Frame chính (Đã tối ưu kích thước để vừa vặn màn hình điện thoại)
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 280, 0, 320)
-frame.Position = UDim2.new(0.35, 0, 0.3, 0)
+frame.Size = UDim2.new(0, 260, 0, 300)
+frame.Position = UDim2.new(0.2, 0, 0.2, 0)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.Active = true
-frame.Draggable = true
+frame.Draggable = true -- Delta X hỗ trợ kéo thả trên điện thoại
 frame.Parent = screenGui
 
 -- Tiêu đề
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 30)
 title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-title.Text = "Universal GUI"
+title.Text = "Universal GUI (Mobile)"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextScaled = true
 title.Parent = frame
 
 -- ==========================================
--- [1] FRUIT FINDER (GIỮ NGUYÊN BỘ LỌC CŨ)
+-- [1] FRUIT FINDER & BỘ LỌC TÌM KIẾM CŨ
 -- ==========================================
 local excluded = {"Smelt","Diamond","Spring","Chop","Slip","Swim","Clone","Hot","Clear","Float","Luck","Spin","Bomb","ResetDevil","Barrier"}
 local function isExcluded(name)
@@ -43,10 +45,10 @@ local function isExcluded(name)
 end
 
 local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1, -10, 0, 120)
+scroll.Size = UDim2.new(1, -10, 0, 110)
 scroll.Position = UDim2.new(0, 5, 0, 35)
 scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-scroll.ScrollBarThickness = 6
+scroll.ScrollBarThickness = 5
 scroll.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 scroll.Parent = frame
 
@@ -100,7 +102,7 @@ local function updateFruitList()
     end
 end
 
--- Vòng lặp cập nhật danh sách Trái cây (5 giây/lần)
+-- Tự động quét Fruit mỗi 5 giây
 task.spawn(function()
     while task.wait(5) do
         updateFruitList()
@@ -108,12 +110,12 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- [2] AUTO CLICKDETECTOR (QUÉT TỰ ĐỘNG LIÊN TỤC)
+-- [2] AUTO CLICKDETECTOR MƯỢT MÀ CHO ĐIỆN THOẠI
 -- ==========================================
 local autoClicking = false
 local autoBtn = Instance.new("TextButton")
-autoBtn.Size = UDim2.new(1, -10, 0, 30)
-autoBtn.Position = UDim2.new(0, 5, 0, 160)
+autoBtn.Size = UDim2.new(1, -10, 0, 28)
+autoBtn.Position = UDim2.new(0, 5, 0, 150)
 autoBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 120)
 autoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 autoBtn.Text = "Auto ClickDetector: OFF"
@@ -124,16 +126,14 @@ autoBtn.MouseButton1Click:Connect(function()
     autoBtn.Text = autoClicking and "Auto ClickDetector: ON" or "Auto ClickDetector: OFF"
 end)
 
--- Vòng lặp tự động sửa lỗi mất Nhân vật khi hồi sinh (Reset)
 task.spawn(function()
-    local maxDistance = 32 -- Bạn có thể tăng/giảm khoảng cách kích hoạt tại đây
+    local maxDistance = 32 -- Khoảng cách tự click
 
     while task.wait(0.5) do
         if autoClicking then
             local char = player.Character
             local rootPart = char and char:FindFirstChild("HumanoidRootPart")
             
-            -- Chỉ chạy nếu nhân vật còn sống và có HRP
             if rootPart then
                 for _, obj in ipairs(workspace:GetDescendants()) do
                     if obj:IsA("ClickDetector") then
@@ -141,7 +141,6 @@ task.spawn(function()
                         if parent and (parent:IsA("BasePart") or parent:FindFirstChild("PrimaryPart")) then
                             local partPosition = parent:IsA("BasePart") and parent.Position or parent.PrimaryPart.Position
                             
-                            -- Kiểm tra khoảng cách
                             if (partPosition - rootPart.Position).Magnitude <= maxDistance then
                                 pcall(function() fireclickdetector(obj) end)
                             end
@@ -157,8 +156,8 @@ end)
 -- [3] NÚT USE MILK/JUICE
 -- ==========================================
 local milkBtn = Instance.new("TextButton")
-milkBtn.Size = UDim2.new(1, -10, 0, 30)
-milkBtn.Position = UDim2.new(0, 5, 0, 195)
+milkBtn.Size = UDim2.new(1, -10, 0, 28)
+milkBtn.Position = UDim2.new(0, 5, 0, 182)
 milkBtn.BackgroundColor3 = Color3.fromRGB(80, 120, 80)
 milkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 milkBtn.Text = "Use Milk/Juice"
@@ -181,7 +180,7 @@ milkBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- [4] NÚT MIX JUICINGBOWL (1 LẦN CLICK)
+-- [4] NÚT MIX JUICINGBOWL
 -- ==========================================
 local function findMixerClickDetector()
     local kitchen = workspace:FindFirstChild("Island8") and workspace.Island8:FindFirstChild("Kitchen")
@@ -201,8 +200,8 @@ local function findMixerClickDetector()
 end
 
 local mixBtn = Instance.new("TextButton")
-mixBtn.Size = UDim2.new(1, -10, 0, 30)
-mixBtn.Position = UDim2.new(0, 5, 0, 230)
+mixBtn.Size = UDim2.new(1, -10, 0, 28)
+mixBtn.Position = UDim2.new(0, 5, 0, 214)
 mixBtn.BackgroundColor3 = Color3.fromRGB(120, 80, 120)
 mixBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 mixBtn.Text = "Mix JuicingBowl"
@@ -221,8 +220,8 @@ end)
 -- [5] TELEPORT SANDCASTLE
 -- ==========================================
 local tpBtn = Instance.new("TextButton")
-tpBtn.Size = UDim2.new(1, -10, 0, 30)
-tpBtn.Position = UDim2.new(0, 5, 0, 265)
+tpBtn.Size = UDim2.new(1, -10, 0, 28)
+tpBtn.Position = UDim2.new(0, 5, 0, 246)
 tpBtn.BackgroundColor3 = Color3.fromRGB(120, 80, 80)
 tpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 tpBtn.Text = "Teleport SandCastle"
@@ -237,15 +236,36 @@ tpBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- [6] NÚT XÓA HOÀN TOÀN GUI
+-- [6] NÚT XÓA HẲN SCRIPT
 -- ==========================================
 local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 50, 0, 30)
-closeBtn.Position = UDim2.new(1, -55, 1, -35)
+closeBtn.Size = UDim2.new(0, 45, 0, 22)
+closeBtn.Position = UDim2.new(1, -50, 1, -26)
 closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeBtn.Text = "Xóa"
 closeBtn.Parent = frame
 
 closeBtn.MouseButton1Click:Connect(function()
-    screenGui:
+    screenGui:Destroy()
+end)
+
+-- ==========================================
+-- [7] BONG BÓNG ẨN/HIỆN (RẤT TIỆN TRÊN ĐIỆN THOẠI)
+-- ==========================================
+local bubble = Instance.new("TextButton")
+bubble.Size = UDim2.new(0, 45, 0, 45)
+bubble.Position = UDim2.new(0.85, 0, 0.5, -22)
+bubble.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+bubble.Text = "◎"
+bubble.TextScaled = true
+bubble.TextColor3 = Color3.fromRGB(255, 255, 255)
+bubble.Parent = screenGui
+bubble.Active = true
+bubble.Draggable = true
+
+local guiVisible = true
+bubble.MouseButton1Click:Connect(function()
+    guiVisible = not guiVisible
+    frame.Visible = guiVisible
+end)
